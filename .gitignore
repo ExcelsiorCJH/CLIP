@@ -281,4 +281,8 @@ $RECYCLE.BIN/
 data/
 data/*
 
+# exp dir
+exp/
+exp/*
+
 # End of https://www.toptal.com/developers/gitignore/api/python,visualstudiocode,jupyternotebooks,linux,windows,macos
