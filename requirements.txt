@@ -1,5 +1,7 @@
 black
 jupyter-black
+omegaconf
+tensorboard
 transformers==4.33.3
 timm==0.9.12
 opencv-python==4.8.1.78
