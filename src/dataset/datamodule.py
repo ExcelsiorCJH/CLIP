@@ -1,8 +1,6 @@
 import pandas as pd
 
 from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
-
 from transformers import AutoTokenizer
 from sklearn.model_selection import train_test_split
 
@@ -24,7 +22,6 @@ class CLIPDataModule:
         batch_size: int = 32,
         num_workers: int = 4,
         pin_memory: bool = True,
-        use_sampler: bool = True,
     ):
         self.dataset_name = dataset_name
         self.data_path = data_path
@@ -37,7 +34,6 @@ class CLIPDataModule:
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.pin_memory = pin_memory
-        self.use_sampler = use_sampler
 
         self.setup()
 
@@ -66,9 +62,6 @@ class CLIPDataModule:
             self.train_transform,
             self.txt_max_length,
         )
-        self.train_sampler = None
-        if self.use_sampler:
-            self.train_sampler = DistributedSampler(self.trainset)
 
         self.valset = CLIPDataset(
             val_df,
@@ -89,10 +82,9 @@ class CLIPDataModule:
         return DataLoader(
             self.trainset,
             batch_size=self.batch_size,
-            sampler=self.train_sampler,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
-            shuffle=(self.train_sampler is None),
+            shuffle=True,
         )
 
     def val_dataloader(self):
@@ -100,6 +92,7 @@ class CLIPDataModule:
             self.valset,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
             shuffle=True,
         )
 

@@ -10,7 +10,6 @@ datamodule:
   batch_size: 32
   num_workers: 4
   pin_memory: true
-  use_sampler: true
 
 model:
   is_trainable: true
@@ -32,13 +31,9 @@ train:
   patience: 1
   factor: 0.8
   epochs: 1
-  ckpt_dir: "../exp"
+  ckpt_dir: "src/exp"
   save_top_k: 3
   eval_step: 200
 
-ddp:
+dp:
   amp: true
-  rank: 0
-  world_size: 1
-  dist_backend: "nccl"
-  dist_url: "tcp://127.0.0.1:3456"
