@@ -1,5 +1,5 @@
 datamodule:
-  datase_name: "flickr-8k"
+  dataset_name: "flickr-8k"
   data_path: "../data/Flickr-8k/captions.txt"
   img_dir: "../data/Flickr-8k/Images"
   tokenizer_name: "distilbert-base-uncased"
@@ -25,7 +25,7 @@ model:
 
 train:
   seed: 42
-  image_encoder_lr: 1e-4
+  img_encoder_lr: 1e-4
   text_encoder_lr: 1e-5
   proj_head_lr: 1e-3
   weight_decay: 1e-3
@@ -38,6 +38,7 @@ train:
 
 ddp:
   amp: true
+  rank: 0
   world_size: 1
   dist_backend: "nccl"
   dist_url: "tcp://127.0.0.1:3456"

@@ -13,6 +13,7 @@ from .utils import get_transform
 class CLIPDataModule:
     def __init__(
         self,
+        dataset_name: str,
         data_path: str,
         img_dir: str,
         tokenizer_name: str,
@@ -25,6 +26,7 @@ class CLIPDataModule:
         pin_memory: bool = True,
         use_sampler: bool = True,
     ):
+        self.dataset_name = dataset_name
         self.data_path = data_path
         self.img_dir = img_dir
         self.tokenizer_name = tokenizer_name

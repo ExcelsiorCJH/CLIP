@@ -37,57 +37,59 @@ class Trainer:
             config.datamodule.batch_size / ngpus_per_node
         )
         self.dm = CLIPDataModule(**config.datamodule)
+        self.train_sampler = self.dm.train_sampler
         self.train_loader = self.dm.train_dataloader()
         self.val_loader = self.dm.val_dataloader()
 
         # optimizer
         self.optimizer, self.lr_scheduler = self.configure_optimizers()
 
-        # model-saving options
-        self.version = 0
-        self.ckpt_paths = []
-        while True:
-            ckpt_dir = self.config.train.ckpt_dir
-            if not os.path.exists(ckpt_dir):
-                os.mkdir(ckpt_dir)
+        # model-saving options (only at rank 0)
+        if self.rank == 0:
+            self.version = 0
+            self.ckpt_paths = []
+            while True:
+                ckpt_dir = self.config.train.ckpt_dir
+                if not os.path.exists(ckpt_dir):
+                    os.mkdir(ckpt_dir)
 
-            self.save_path = os.path.join(
-                ckpt_dir,
-                f"version-{self.config.datamodule.dataset_name}-{self.version}",
+                self.save_path = os.path.join(
+                    ckpt_dir,
+                    f"version-{self.config.datamodule.dataset_name}-{self.version}",
+                )
+                if not os.path.exists(self.save_path):
+                    os.makedirs(self.save_path)
+                    break
+                else:
+                    self.version += 1
+            self.summarywriter = SummaryWriter(self.save_path)
+
+            self.global_step = 0
+            self.global_val_loss = 1e5
+            self.eval_step = self.config.train.eval_step
+            logging.basicConfig(
+                filename=os.path.join(self.save_path, "experiment.log"),
+                level=logging.INFO,
+                format="%(asctime)s > %(message)s",
             )
-            if not os.path.exists(self.save_path):
-                os.makedirs(self.save_path)
-                break
-            else:
-                self.version += 1
-        self.summarywriter = SummaryWriter(self.save_path)
 
-        self.global_step = 0
-        self.global_val_loss = 1e5
-        self.eval_step = self.config.train.eval_step
-        logging.basicConfig(
-            filename=os.path.join(self.save_path, "experiment.log"),
-            level=logging.INFO,
-            format="%(asctime)s > %(message)s",
-        )
-
-        # experiment-logging options
-        self.best_result = {"version": self.version}
+            # experiment-logging options
+            self.best_result = {"version": self.version}
 
     def configure_optimizers(self):
         params = [
             {
-                "params": self.model.image_encoder.parameters(),
-                "lr": self.config.train.image_encoder_lr,
+                "params": self.model.module.img_encoder.parameters(),
+                "lr": self.config.train.img_encoder_lr,
             },
             {
-                "params": self.model.text_encoder.parameters(),
+                "params": self.model.module.text_encoder.parameters(),
                 "lr": self.config.train.text_encoder_lr,
             },
             {
                 "params": itertools.chain(
-                    self.model.image_projection.parameters(),
-                    self.model.text_projection.parameters(),
+                    self.model.module.img_projection.parameters(),
+                    self.model.module.text_projection.parameters(),
                 ),
                 "lr": self.config.train.proj_head_lr,
                 "weight_decay": self.config.train.weight_decay,
@@ -140,8 +142,6 @@ class Trainer:
 
             if self.rank == 0:
                 self.lr_scheduler.step(result["val_loss"])
-            else:
-                self.lr_scheduler.step()
 
         if self.rank == 0:
             self.summarywriter.close()
@@ -157,10 +157,14 @@ class Trainer:
             total=len(self.train_loader),
             disable=self.rank in [0],
         ):
-            batch = {k: v.to(self.device) for k, v in batch.items()}
+            batch = {
+                k: v.to(self.device, non_blocking=True)
+                for k, v in batch.items()
+                if k != "caption"
+            }
 
             self.optimizer.zero_grad()
-            if self.config.amp:
+            if self.config.ddp.amp:
                 with torch.cuda.amp.autocast():
                     outputs = self.model(batch)
                     loss = outputs["loss"]
@@ -169,7 +173,7 @@ class Trainer:
                 self.scaler.step(self.optimizer)
                 self.scaler.update()
             else:
-                outputs = self.model(**batch)
+                outputs = self.model(batch)
                 loss = outputs["loss"]
                 loss.backward()
                 self.optimizer.step()
@@ -216,7 +220,11 @@ class Trainer:
                 desc="valid_steps",
                 total=len(self.val_loader),
             ):
-                batch = {k: v.to(self.device) for k, v in batch.items()}
+                batch = {
+                    k: v.to(self.device, non_blocking=True)
+                    for k, v in batch.items()
+                    if k != "caption"
+                }
 
                 outputs = self.model(batch)
                 loss = outputs["loss"]

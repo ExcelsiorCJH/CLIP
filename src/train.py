@@ -18,7 +18,7 @@ warnings.filterwarnings(action="ignore")
 
 
 def main_worker(rank, ngpus_per_node, config) -> None:
-    print(f"Use GPU {config.rank_list[rank]} for training")
+    print(f"Use GPU {config.ddp.rank_list[rank]} for training")
     fix_seed(config.train.seed)
 
     config.ddp.rank = config.ddp.rank * ngpus_per_node + rank
@@ -29,7 +29,7 @@ def main_worker(rank, ngpus_per_node, config) -> None:
         init_method=config.ddp.dist_url,
     )
 
-    scaler = torch.cuda.amp.GradScaler() if config.train.amp else None
+    scaler = torch.cuda.amp.GradScaler() if config.ddp.amp else None
 
     # trainer
     trainer = Trainer(
@@ -47,11 +47,14 @@ if __name__ == "__main__":
     config_path = "config/clip_config.yaml"
     config = omegaconf.OmegaConf.load(config_path)
 
+    # transformers - tokenizers warning off
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
     # GPU setting
     VISIBLE_GPUS = "0,1"
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     os.environ["CUDA_VISIBLE_DEVICES"] = VISIBLE_GPUS
-    config.rank_list = [int(i) for i in VISIBLE_GPUS.split(",")]
+    config.ddp.rank_list = [int(i) for i in VISIBLE_GPUS.split(",")]
 
     # 'world_size' means total number of processes to run
     ngpus_per_node = torch.cuda.device_count()
