@@ -15,8 +15,8 @@ import sys
 sys.path.append("..")
 
 from .utils import AverageMeter
-from model.clip import CLIP
-from dataset.datamodule import CLIPDataModule
+from ..model.clip import CLIP
+from ..dataset.datamodule import CLIPDataModule
 
 
 class Trainer:

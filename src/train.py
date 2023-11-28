@@ -9,8 +9,8 @@ import torch.nn.functional as F
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from module.trainer import Trainer
-from module.utils import fix_seed
+from .module.trainer import Trainer
+from .module.utils import fix_seed
 
 import warnings
 
@@ -44,7 +44,7 @@ def main_worker(rank, ngpus_per_node, config) -> None:
 
 
 if __name__ == "__main__":
-    config_path = "config/clip_config.yaml"
+    config_path = "src/config/clip_config.yaml"
     config = omegaconf.OmegaConf.load(config_path)
 
     # transformers - tokenizers warning off
