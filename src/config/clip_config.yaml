@@ -30,7 +30,7 @@ train:
   weight_decay: 1e-3
   patience: 1
   factor: 0.8
-  epochs: 1
+  epochs: 20
   ckpt_dir: "src/exp"
   save_top_k: 3
   eval_step: 200
