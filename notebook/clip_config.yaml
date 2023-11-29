@@ -1,0 +1,39 @@
+datamodule:
+  dataset_name: "flickr-8k"
+  data_path: "../data/Flickr-8k/captions.txt"
+  img_dir: "../data/Flickr-8k/Images"
+  tokenizer_name: "distilbert-base-uncased"
+  img_size: 224
+  txt_max_length: 200
+  val_size: 0.2
+  test_size: 0.2
+  batch_size: 32
+  num_workers: 4
+  pin_memory: true
+
+model:
+  is_trainable: true
+  use_pretrained: true
+  img_model_name: "resnet50"
+  img_embedding: 2048
+  text_model_name: "distilbert-base-uncased"
+  text_embedding: 768
+  projection_dim: 256
+  dropout: 0.1
+  temperature: 1.0
+
+train:
+  seed: 42
+  img_encoder_lr: 1e-4
+  text_encoder_lr: 1e-5
+  proj_head_lr: 1e-3
+  weight_decay: 1e-3
+  patience: 1
+  factor: 0.8
+  epochs: 20
+  ckpt_dir: "./exp"
+  save_top_k: 3
+  eval_step: 200
+
+dp:
+  amp: true

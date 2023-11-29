@@ -47,16 +47,16 @@ class CLIPDataModule:
         self.test_transform = get_transform(img_size=self.img_size, stage="test")
 
         # train/val/test split
-        train_df, test_df = train_test_split(
+        train_df, self.test_df = train_test_split(
             self.df, test_size=self.test_size, shuffle=True
         )
-        train_df, val_df = train_test_split(
+        self.train_df, self.val_df = train_test_split(
             train_df, test_size=self.val_size, shuffle=True
         )
 
         # train/val/test set
         self.trainset = CLIPDataset(
-            train_df,
+            self.train_df,
             self.img_dir,
             self.tokenizer,
             self.train_transform,
@@ -64,14 +64,14 @@ class CLIPDataModule:
         )
 
         self.valset = CLIPDataset(
-            val_df,
+            self.val_df,
             self.img_dir,
             self.tokenizer,
             self.test_transform,
             self.txt_max_length,
         )
         self.testset = CLIPDataset(
-            test_df,
+            self.test_df,
             self.img_dir,
             self.tokenizer,
             self.test_transform,
