@@ -3,6 +3,8 @@ import itertools
 import logging
 
 import yaml
+import omegaconf
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -49,7 +51,7 @@ class Trainer:
 
             self.save_path = os.path.join(
                 ckpt_dir,
-                f"version-{self.config.datamodule.dataset_name}-{self.version}",
+                f"{self.config.datamodule.dataset_name}-version-{self.version}",
             )
             if not os.path.exists(self.save_path):
                 os.makedirs(self.save_path)
@@ -66,6 +68,17 @@ class Trainer:
             level=logging.INFO,
             format="%(asctime)s > %(message)s",
         )
+
+        config.version = self.version
+        with open(
+            os.path.join(self.save_path, "config.yaml"), "w", encoding="utf8"
+        ) as outfile:
+            yaml.dump(
+                omegaconf.OmegaConf.to_container(config),
+                outfile,
+                default_flow_style=False,
+                allow_unicode=True,
+            )
 
         # experiment-logging options
         self.best_result = {"version": self.version}
@@ -111,7 +124,9 @@ class Trainer:
         )
         self.global_val_loss = val_loss
 
-        ckpt_path = os.path.join(self.save_path, f"epoch_{epoch}_{val_loss:.4f}.pt")
+        ckpt_path = os.path.join(
+            self.save_path, f"epoch_{epoch}_loss_{val_loss:.4f}.pt"
+        )
 
         save_top_k = self.config.train.save_top_k
         self.ckpt_paths.append(ckpt_path)
@@ -121,7 +136,7 @@ class Trainer:
 
             self.ckpt_paths = self.ckpt_paths[-save_top_k:]
 
-        torch.save(model.state_dict(), ckpt_path)
+        torch.save(model.module.state_dict(), ckpt_path)
 
     def fit(self) -> dict:
         for epoch in tqdm(range(self.config.train.epochs), desc="epoch"):
