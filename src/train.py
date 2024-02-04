@@ -27,7 +27,7 @@ if __name__ == "__main__":
     config_path = "src/config/clip_config.yaml"
     config = omegaconf.OmegaConf.load(config_path)
 
-    # transformers - tokenizers warning off
+    # huggingface transformers - tokenizers warning off
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
     main(config)
